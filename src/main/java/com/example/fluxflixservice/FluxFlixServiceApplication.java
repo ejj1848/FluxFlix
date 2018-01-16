@@ -3,7 +3,7 @@ package com.example.fluxflixservice;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-//This is the coolest demo ever!!!
+//Alex
 //David Pena
 @SpringBootApplication
 public class FluxFlixServiceApplication {
