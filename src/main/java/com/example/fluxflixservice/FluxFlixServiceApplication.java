@@ -13,10 +13,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.server.RequestPredicates;
+import org.springframework.web.reactive.function.server.RouterFunction;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
@@ -26,6 +24,10 @@ import java.util.Date;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Stream;
+
+import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
+import static org.springframework.web.reactive.function.server.RouterFunctions.route;
+import static org.springframework.web.reactive.function.server.ServerResponse.ok;
 
 
 interface MovieRepository extends ReactiveMongoRepository<Movie, String> {
@@ -125,31 +127,31 @@ class FluxFlixService {
     }
 }
 
-@RestController
-@RequestMapping("/movie")
-class MovieRestController {
-    private final FluxFlixService fluxFlixService;
-
-    MovieRestController(FluxFlixService fluxFlixService) {
-        this.fluxFlixService = fluxFlixService;
-    }
-
-    @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<MovieEvent> event(@PathVariable String id) {
-        return fluxFlixService.byId(id)
-                .flatMapMany(fluxFlixService::streamStreams);
-    }
-
-    @GetMapping
-    public Flux<Movie> all() {
-        return fluxFlixService.all();
-    }
-
-    @GetMapping("/{id}")
-    public Mono<Movie> byId(@PathVariable String id) {
-        return fluxFlixService.byId(id);
-    }
-}
+//@RestController
+//@RequestMapping("/movie")
+//class MovieRestController {
+//    private final FluxFlixService fluxFlixService;
+//
+//    MovieRestController(FluxFlixService fluxFlixService) {
+//        this.fluxFlixService = fluxFlixService;
+//    }
+//
+//    @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+//    public Flux<MovieEvent> event(@PathVariable String id) {
+//        return fluxFlixService.byId(id)
+//                .flatMapMany(fluxFlixService::streamStreams);
+//    }
+//
+//    @GetMapping
+//    public Flux<Movie> all() {
+//        return fluxFlixService.all();
+//    }
+//
+//    @GetMapping("/{id}")
+//    public Mono<Movie> byId(@PathVariable String id) {
+//        return fluxFlixService.byId(id);
+//    }
+//}
 
 @SpringBootApplication
 public class FluxFlixServiceApplication {
@@ -157,6 +159,18 @@ public class FluxFlixServiceApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(FluxFlixServiceApplication.class, args);
+    }
+
+    @Bean
+    RouterFunction<?> routes(FluxFlixService service) {
+        return route(RequestPredicates.GET("/movies"),
+                serverRequest -> ok().body(service.all(), Movie.class))
+                .andRoute(GET("/movies/{id}"), serverRequest -> ok().body(service.byId(serverRequest.pathVariable("id")), Movie.class))
+                .andRoute(GET("/movies/{id}/events"), serverRequest -> ok()
+                        .contentType(MediaType.TEXT_EVENT_STREAM)
+                        .body(service.byId(serverRequest.pathVariable("id"))
+                                .flatMapMany(service::streamStreams), MovieEvent.class));
+
     }
 
     @Bean
