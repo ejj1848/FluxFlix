@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,6 +67,30 @@ class MovieEvent {
         this.when = when;
         this.user = user;
     }
+
+    public Movie getMovie() {
+        return movie;
+    }
+
+    public void setMovie(Movie movie) {
+        this.movie = movie;
+    }
+
+    public Date getWhen() {
+        return when;
+    }
+
+    public void setWhen(Date when) {
+        this.when = when;
+    }
+
+    public String getUser() {
+        return user;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
+    }
 }
 
 @Service
@@ -84,7 +109,6 @@ class FluxFlixService {
 
         return Flux.zip(interval, events).map(Tuple2::getT2);
 
-
     }
 
     private String randomUser() {
@@ -100,25 +124,29 @@ class FluxFlixService {
         return movieRepository.findById(id);
     }
 }
+
 @RestController
 @RequestMapping("/movie")
-class MovieRestController{
+class MovieRestController {
     private final FluxFlixService fluxFlixService;
 
-    MovieRestController(FluxFlixService fluxFlixService){
+    MovieRestController(FluxFlixService fluxFlixService) {
         this.fluxFlixService = fluxFlixService;
     }
-    @GetMapping("/{id}/events")
-    public Flux<MovieEvent> event(String id){
-        return null;
+
+    @GetMapping(value = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<MovieEvent> event(@PathVariable String id) {
+        return fluxFlixService.byId(id)
+                .flatMapMany(fluxFlixService::streamStreams);
     }
 
     @GetMapping
-    public Flux<Movie> all(){
+    public Flux<Movie> all() {
         return fluxFlixService.all();
     }
+
     @GetMapping("/{id}")
-    public Mono<Movie> byId(@PathVariable String id){
+    public Mono<Movie> byId(@PathVariable String id) {
         return fluxFlixService.byId(id);
     }
 }
