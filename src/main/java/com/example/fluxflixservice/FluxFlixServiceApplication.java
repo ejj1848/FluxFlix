@@ -165,7 +165,8 @@ public class FluxFlixServiceApplication {
     RouterFunction<?> routes(FluxFlixService service) {
         return route(RequestPredicates.GET("/movies"),
                 serverRequest -> ok().body(service.all(), Movie.class))
-                .andRoute(GET("/movies/{id}"), serverRequest -> ok().body(service.byId(serverRequest.pathVariable("id")), Movie.class))
+                .andRoute(GET("/movies/{id}"), serverRequest -> ok()
+                        .body(service.byId(serverRequest.pathVariable("id")), Movie.class))
                 .andRoute(GET("/movies/{id}/events"), serverRequest -> ok()
                         .contentType(MediaType.TEXT_EVENT_STREAM)
                         .body(service.byId(serverRequest.pathVariable("id"))
